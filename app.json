@@ -1,0 +1,12 @@
+{
+  "name": "spa",
+  "displayName": "spa",
+  "expo": {
+    "name": "spa",
+    "slug": "spa",
+    "version": "1.0.0",
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  }
+}
