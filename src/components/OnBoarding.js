@@ -2,16 +2,17 @@ import React, { Component } from 'react';
 import {
   View,
   Text,
-  Animated,
   PanResponder,
   Dimensions,
   LayoutAnimation,
   UIManager,
-  Easing,
   Image,
   StatusBar,
   NativeModules
 } from 'react-native';
+import { PanGestureHandler } from "react-native-gesture-handler";
+import Animated, { Easing } from "react-native-reanimated";
+import { usePanGestureHandler, withOffset, withDecay, diffClamp } from "react-native-redash";
 import { InteractionManager } from 'react-native';
 import { Actions } from 'react-native-router-flux';
 import { Button } from './common/Button';
@@ -19,199 +20,136 @@ import { ONBOARDING_TEXT } from '../../assets/texts/onboarding_text';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
-const WIDTH_THRESHOLD = 0.50 * SCREEN_WIDTH;
-const VELOCITY_THESHOLD = 0.5;
-const SWIPE_OUT_DURATION = 250;
+const SWIPE_WIDTH_THRESHOLD = 0.20 * SCREEN_WIDTH;
+const SWIPE_VELOCITY_THESHOLD = 100;
+const SWIPE_OUT_DURATION = 500;
+const ROTATION_TIME_INTERVAL = 2000;
+const ROTATION_SWIPE_OUT_VELOCITY = 0.4
 
-type State = {|
- didFinishInitialAnimation: boolean,
-|};
+class OnBoarding extends Component {
 
-type Props = {
- dispatchTeamFetchStart: Function,
-};
-
-class OnBoarding extends Component<Props, State> {
-
-  static get defaultProps()  {
-    return {
-      data: ONBOARDING_TEXT
-    }
-  }
-
-  constructor(props: Props) {
+  data = ONBOARDING_TEXT;
+  constructor(props) {
     super(props);
-    //this.state = { panResponder, position, index: 0 };
 
-    this.state = { index: 0, didFinishInitialAnimation: false };
+    //this.state = {translateX: new Animated.Value(0)};
+    this.translateX = new Animated.Value(0);
+    this.state = { gestureReleased: true, swipeFinished: true, swipeTimer: setInterval(() => {
+                  this.swipe()}, 4000), dir: 1};
   }
 
   componentDidMount() {
-    /*   // 1: Component is mounted off-screen */
-
-    //NativeModules.RNRootViewBackground.setBackground(0, 0, 0, 1);
-    console.log("finish animation");
-   InteractionManager.runAfterInteractions(() => {
-     /*  // 2: Component is done animating
-        // 3: Start fetching the team */
-     //this.props.dispatchTeamFetchStart();
-
-     /*  // 4: set didFinishInitialAnimation to false
-        // This will render the navigation bar and a list of players */
-     this.setState({
-       didFinishInitialAnimation: true,
-     });
-   });
- }
-
-
-  position = new Animated.ValueXY();
-  panResponder = PanResponder.create({
-    onMoveShouldSetPanResponder: () => true,
-    onPanResponderMove: Animated.event([
-      null,
-      { dx: this.position.x, dy: 0 }
-    ], { useNativeDriver: false }),
-    onPanResponderRelease: (event, gesture) => {
-      if (gesture.dx > WIDTH_THRESHOLD || gesture.vx > VELOCITY_THESHOLD) {
-        this.forceSwipe('right', gesture.vx, gesture.vy);
-      } else if (gesture.dx < -WIDTH_THRESHOLD || gesture.vx < -VELOCITY_THESHOLD) {
-        this.forceSwipe('left', gesture.vx, gesture.vy);
-      } else {
-        this.resetPosition();
-      }
-    }
-  });
-
-  onSwipeComplete(direction) {
-    const { data } = this.props;
-    if (direction === 'right') {
-      this.onSwipeRight(data);
-    } else {
-      this.onSwipeLeft(data);
-    }
-    this.position.setValue({ x: 0, y: 0 });
+  //  const swipeTimer = setInterval(() => {
+  //    this.swipe()}, 30000);
   }
 
-  onSwipeRight(data) {
-    if (this.state.index === 0) {
-      this.setState({ index: data.length - 1 });
-    } else {
-      this.setState({ index: this.state.index - 1 });
-    }
-  }
-
-  onSwipeLeft(data) {
-    if (this.state.index === data.length - 1) {
-      this.setState({ index: 0 });
-    } else {
-      this.setState({ index: this.state.index + 1 });
-    }
-  }
-
-  getDataStyle() {
-    return {
-      ...this.position.getLayout(),
-    };
-  }
-
-  resetPosition() {
-    Animated.spring(this.position, {
-      toValue: { x: 0, y: 0 },
-      useNativeDriver: false,
-    }).start();
-  }
-
-  forceSwipe(direction, vx, vy) {
-    const x = direction === 'right' ? SCREEN_WIDTH : -SCREEN_WIDTH;
-//    Animated.decay(this.position, {
-//      velocity: { x: vx, y: vy },
-//      toValue: { x, y: 0 },
-//      deceleration: 0.993,
-//      useNativeDriver: true,
-//    }).start(() => this.onSwipeComplete(direction));
-    Animated.timing(this.position, {
-      toValue: { x, y: 0 },
+  swipe() {
+    this.translateX.setValue(0);
+    this.setState({ swipeFinished: false });
+    Animated.timing(this.translateX, {
+      toValue: 1,
       duration: SWIPE_OUT_DURATION,
-      useNativeDriver: false,
-      easing: Easing.linear
-    }).start(() => this.onSwipeComplete(direction));
+      easing: Easing.bezier(1, 1, 1, 1), // linear
+      useNativeDriver: true
+    }).start(() => this.setState({ swipeFinished: true }));
   }
 
-  renderData() {
-    const item = this.props.data[this.state.index];
-    return (
-    <Animated.View
-      key={item.id}
-      useNativeDriver={false}
-      style={[styles.dataStyle, {transform: [{ translateX: this.position.x }]}, { zIndex: 99 }]}
-      {...this.panResponder.panHandlers}
-    >
-        <Text style={{ marginBottom: 10 }}>
-          {item.text}
-        </Text>
-    </Animated.View>
-    );
-  }
+  handleGesture = (evt) => {
+    let { nativeEvent } = evt;
+    if (this.state.swipeFinished && this.state.gestureReleased &&
+      (Math.abs(nativeEvent.velocityX) > SWIPE_VELOCITY_THESHOLD)) {
+      this.setState({ dir: 1 });
+      if(nativeEvent.translationX < 0) {
+        this.setState({ dir: -1 });
+      }
 
-  renderPagination() {
-    const { data } = this.props;
-    const activeDot = <View style={[styles.dot, styles.activeDot]} />;
-    const dot = <View style={styles.dot} />;
-
-    const dots = [];
-    for (let key = 0; key < data.length; key++) {
-      dots.push(key === this.state.index
-        ? React.cloneElement(activeDot, { key })
-        : React.cloneElement(dot, { key })
-      );
+      this.setState({ swipeFinished: false, gestureReleased: false });
+      this.swipe();
+      clearInterval(this.state.swipeTimer);
+      this.setState({ swipeTimer: setInterval(() => {this.swipe()}, 4000)});
     }
+  }
+
+  onGestureStateChange = (evt) => {
+    this.setState({ gestureReleased: true });
+  }
+
+
+  componentWillUnmount() {
+    clearInterval(this.swipeTimer);
+  }
+
+  render() {
+    const swipeTranslate = this.translateX.interpolate({
+      inputRange: [0, 0.5, 1],
+      outputRange: [0, this.state.dir*SCREEN_WIDTH, 0]});
+
 
     return (
-      <View
-        pointerEvents="auto"
-        style={[styles.pagination]}
-      >
-        {dots}
+      <View style={styles.view}>
+        {this.data.slice(0, 3).map((obj, idx) => {
+
+          return(
+          <PanGestureHandler onGestureEvent={this.handleGesture} onHandlerStateChange={this.onGestureStateChange} >
+            <Animated.View
+            key={idx}
+            style={[styles.view, {transform: [{ translateX: swipeTranslate }]}]} >
+              <Text style={styles.text} >
+                {this.data[idx].text}
+              </Text>
+            </Animated.View>
+          </PanGestureHandler>
+          );
+        })}
       </View>
     );
   }
+}
 
-  goToInventory() {
-    Actions.HomeTab();
+//<Button onPress={this.goToInventory.bind(this)}>Login</Button>
+
+const renderPagination = () => {
+  const { data } = this.props;
+  const activeDot = <View style={[styles.dot, styles.activeDot]} />;
+  const dot = <View style={styles.dot} />;
+
+  const dots = [];
+  for (let key = 0; key < data.length; key++) {
+    dots.push(key === this.state.index
+      ? React.cloneElement(activeDot, { key })
+      : React.cloneElement(dot, { key })
+    );
   }
 
-
-  render() {
-    if(this.state.didFinishInitialAnimation) {
-      console.log("animation finished in on boarding");
-      return (
-        <View style={{flex: 1}}>
-          <View style={styles.dataStyle}>
-            {this.renderData()}
-            {this.renderPagination()}
-            </View>
-
-          <Button onPress={this.goToInventory.bind(this)}>Login</Button>
-        </View>
-          );
-    } else{
-      console.log("on boarding null");
-      return (null);
-    }
-  }
+  return (
+    <View
+      pointerEvents="auto"
+      style={[styles.pagination]}
+    >
+      {dots}
+    </View>
+  );
 }
 
 const styles = {
-  dataStyle: {
-    flex: 1,
+  view: {
+    //flex: 1,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 10,
     width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
+    height: SCREEN_HEIGHT
   },
-
+  text: {
+    flex: 1,
+    color: 'blue',
+    fontSize: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    //width: SCREEN_WIDTH,
+    //height: SCREEN_HEIGHT
+  },
   dot: {
     backgroundColor: 'rgba(0,0,0,.25)',
     width: 8,
@@ -237,4 +175,3 @@ const styles = {
 };
 
 export default OnBoarding;
-        //<Button onPress={() => this.props.navigation.navigate('Home')}>Login</Button>
