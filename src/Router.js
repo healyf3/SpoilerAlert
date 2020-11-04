@@ -147,7 +147,7 @@ const RouterComponent = () => (
         <Scene key="root" hideNavBar transitionConfig={transitionConfig} >
           <Scene key="Splash" component={Splash} title="Splash" initial />
           <Scene key="OnBoarding" component={OnBoarding} title="OnBoarding" />
-          <Scene key="HomeTab" component={HomeTab} title="Homasdfe"/>
+          <Scene key="HomeTab" component={HomeTab} title="Home"/>
           <Scene key="auth">
             <Scene key="login" component={LoginForm} title="Login" />
           </Scene>

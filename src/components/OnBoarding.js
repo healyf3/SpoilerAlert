@@ -22,7 +22,7 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const SWIPE_WIDTH_THRESHOLD = 0.20 * SCREEN_WIDTH;
 const SWIPE_VELOCITY_THESHOLD = 100;
-const SWIPE_OUT_DURATION = 500;
+const SWIPE_OUT_DURATION = 2500;
 const ROTATION_TIME_INTERVAL = 2000;
 const ROTATION_SWIPE_OUT_VELOCITY = 0.4
 
@@ -88,7 +88,6 @@ class OnBoarding extends Component {
     return (
       <View style={styles.view}>
         {this.data.slice(0, 3).map((obj, idx) => {
-
           return(
           <PanGestureHandler onGestureEvent={this.handleGesture} onHandlerStateChange={this.onGestureStateChange} >
             <Animated.View
@@ -142,9 +141,8 @@ const styles = {
     height: SCREEN_HEIGHT
   },
   text: {
-    flex: 1,
     color: 'blue',
-    fontSize: 20,
+    fontSize: 16,
     justifyContent: 'center',
     alignItems: 'center',
     //width: SCREEN_WIDTH,
