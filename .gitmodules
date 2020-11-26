@@ -1,0 +1,3 @@
+[submodule "spa_backend"]
+	path = spa_backend
+	url = https://healyf3@bitbucket.org/healyf3/spa_backend.git
