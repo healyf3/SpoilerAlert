@@ -21,18 +21,17 @@ const GET_CURRENT_USER = gql`
 const Profile = () =>
   <Query query={GET_CURRENT_USER}>
     {({ data, loading, error }) => {
-      const { items } = data;
-      console.log(data);
 
       // TODO: import loading common component
-      //if (loading || !viewer) {
-      if (loading) {
+      if (loading || !data) {
         return <Text>Loading ...</Text>;
       }
 
+      const { items } = data;
+
       return (
         <Text>
-          items.edges[0].title;
+          {items.edges[0].title}
         </Text>
       );
     }}
