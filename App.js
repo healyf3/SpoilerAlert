@@ -16,43 +16,35 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 //import reducers from './src/reducers';
-//import SpaNavigator from './src/SpaNavigator';
-//import AppNavigator from './src/SpaNavigator';
 import Router from './src/Router';
+import Profile from './src/components/Profile';
 
-const GITHUB_BASE_URL = 'https://api.github.com/graphql';
+const BASE_URL = 'http://192.168.1.83:8000/graphql';
 
 const httpLink = new HttpLink({
-  uri: GITHUB_BASE_URL,
-  headers: {
-    authorization: `Bearer ${
-      process.env.REACT_APP_GITHUB_PERSONAL_ACCESS_TOKEN
-    }`,
-  },
+  uri: BASE_URL,
+  //headers: {
+  //  authorization: `Bearer ${
+  //    process.env.SECRET
+  //  }`,
+  //},
 });
 
 enableScreens();
 const cache = new InMemoryCache();
 
+  //link: BASE_URL,
 const client = new ApolloClient({
   link: httpLink,
   cache,
 });
 
-//const AppContainer = createAppContainer(AppNavigator);
-
 export default class App extends Component {
   render() {
     return (
-        //  <ApolloProvider client={client}>
-        // </ApolloProvider>
-        //<SpaNavigator />
-        //<View style={{flex:1}, {backgroundColor: 'white'}}>
-        //  <View style={{length: '100%'}, {backgroundColor: 'white'}}>
-        //    <Text style={{flex: 1}, {backgroundColor: 'purple'}}>HIIIII</Text>
-        //  </View>
-        //</View>
-            <Router/>
+      <ApolloProvider client={client}>
+        <Profile/>
+      </ApolloProvider>
     );
   }
 }
